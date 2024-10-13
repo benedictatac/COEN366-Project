@@ -1,65 +1,67 @@
 import socket
 
-# Server address (must match the server's IP and UDP port)
-SERVER_IP = (
-    "0.0.0.0"  # Change this to the machine that will run the server's IP address
-)
-SERVER_PORT = 5005
+# Server address (must match the server's IP and UDP/TCP ports)
+SERVER_IP = "192.168.1.140"
+UDP_PORT = 5005
+TCP_PORT = 5006  # Separate port for TCP
 
-# Might need to instantiate TCP socket here as well
+# Create UDP and TCP sockets
+udpSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+udpSocket.bind(('', 0))  # Bind to an available local port
+tcpSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+# Connect the TCP socket to the server's TCP port
+tcpSocket.connect((SERVER_IP, TCP_PORT))
 
 
-clientSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
-
-def registerUser(name, ipAddress, udpSocket, tcpSocket):
-
+def registerUser(name, udpSocket, tcpSocket):
     localIP = socket.gethostbyname(socket.gethostname())
-    message = f"REGISTER {name} {localIP} {udpSocket} {tcpSocket}"
-    # Send the registration request to the server
-    clientSocket.sendto(
-        message.encode(),
-        (SERVER_IP, SERVER_PORT),
-    )
+    udpPort = udpSocket.getsockname()[1]  # Get the assigned UDP port
+    tcpPort = tcpSocket.getsockname()[1]
+    message = f"REGISTER {name} {localIP} {udpPort} {tcpPort}"
+
+    # Send the registration request to the server via UDP
+    udpSocket.sendto(message.encode(), (SERVER_IP, UDP_PORT))
 
     # Receive the server's response
-    response, addr = clientSocket.recvfrom(1024)
-    print(response.decode())
-
-    # Display the server's response
+    response, _ = udpSocket.recvfrom(1024)
     print("Server response:", response.decode())
 
 
-# create deregisterUser function here (Charles)
+def deregisterUser(rqNum, name):
+    message = f"DEREGISTER {rqNum} {name}"
+    udpSocket.sendto(message.encode(), (SERVER_IP, UDP_PORT))
+
+    response, _ = udpSocket.recvfrom(1024)
+    print("Server response:", response.decode())
 
 
 def menu():
+    print("Client started.")
     print("1. Register User")
     print("2. Deregister User")
     print("3. Exit")
     choice = input("Enter your choice: ")
 
-    match choice:
-        case "1":
-            name = input("Enter your name: ")
-            udpSocket = input("Enter your UDP socket: ")
-            tcpSocket = input("Enter your TCP socket: ")
-            registerUser(name, SERVER_IP, udpSocket, tcpSocket)
-        case "2":
-            rqNum = input("Enter your rqNum: ")
-            name = input("Enter your name: ")
-            # call the deregisterUser function here
-        case "3":
-            print("Exiting...")
-            exit()
-        case _:
-            print("Invalid choice")
-            menu()
+    if choice == '1':
+        name = input("Enter your name: ")
+        registerUser(name, udpSocket, tcpSocket)
+    elif choice == '2':
+        rqNum = input("Enter request number: ")
+        name = input("Enter your name: ")
+        deregisterUser(int(rqNum), name)
+    elif choice == '3':
+        print("Exiting...")
+        return
+    else:
+        print("Invalid choice. Please try again.")
+
+    menu()
 
 
 if __name__ == "__main__":
-    print("Client started.")
     menu()
 
     # Close the socket when done
-    clientSocket.close()
+    udpSocket.close()
+    tcpSocket.close()
