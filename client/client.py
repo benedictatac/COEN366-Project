@@ -14,18 +14,21 @@ tcpSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 tcpSocket.connect((SERVER_IP, TCP_PORT))
 
 
-def registerUser(name, udpSocket, tcpSocket):
-    localIP = socket.gethostbyname(socket.gethostname())
-    udpPort = udpSocket.getsockname()[1]  # Get the assigned UDP port
-    tcpPort = tcpSocket.getsockname()[1]
-    message = f"REGISTER {name} {localIP} {udpPort} {tcpPort}"
+def registerUser(name, udpSocket, tcpSocket, ipAddress):
+    try:
+        localIP = socket.gethostbyname(socket.gethostname())
+        udpPort = udpSocket.getsockname()[1]  # Get the assigned UDP port
+        tcpPort = tcpSocket.getsockname()[1]  # Get the assigned TCP port
+        message = f"REGISTER {name} {localIP} {udpPort} {tcpPort}"
 
-    # Send the registration request to the server via UDP
-    udpSocket.sendto(message.encode(), (SERVER_IP, UDP_PORT))
+        # Send the registration request to the server via UDP
+        udpSocket.sendto(message.encode(), (SERVER_IP, UDP_PORT))
 
-    # Receive the server's response
-    response, _ = udpSocket.recvfrom(1024)
-    print("Server response:", response.decode())
+        # Receive the server's response
+        response, addr = udpSocket.recvfrom(1024)
+        print("Server response:", response.decode())
+    except Exception as e:
+        print(f"Error registering user: {e}")
 
 
 def deregisterUser(rqNum, name):
@@ -45,7 +48,10 @@ def menu():
 
     if choice == '1':
         name = input("Enter your name: ")
-        registerUser(name, udpSocket, tcpSocket)
+        ipAddress = socket.gethostbyname(socket.gethostname())
+        registerUser(name, udpSocket, tcpSocket, ipAddress)
+        print("Registration request sent.")
+    
     elif choice == '2':
         rqNum = input("Enter request number: ")
         name = input("Enter your name: ")
