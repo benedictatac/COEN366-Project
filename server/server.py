@@ -8,12 +8,14 @@ cursor = conn.cursor()
 
 # Server Configuration
 UDP_IP = "192.168.1.140"  # The IP address for the server
+
+# different ports for UDP and TCP
 UDP_PORT = 5005
 TCP_PORT = 5006  # Separate port for TCP
 
-# UDP socket
+# UDP socket creation and binding
 udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-udp_sock.bind((UDP_IP, UDP_PORT))
+udp_sock.bind((UDP_IP, UDP_PORT)) 
 
 # TCP socket
 tcp_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -24,9 +26,32 @@ print(f"Server is starting on UDP IP: {UDP_IP}:{UDP_PORT}")
 print(f"Server is also starting on TCP IP: {UDP_IP}:{TCP_PORT}")
 
 
+
+def CreateDatabase():
+    
+    try:
+        cursor.execute('''
+                   CREATE TABLE IF NOT EXISTS users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    ipAddress TEXT NOT NULL,
+                    udpSocket INTEGER NOT NULL,
+                    tcpSocket INTEGER NOT NULL
+                    )
+                        ''')
+        conn.commit()
+        print("Database created successfully")
+    except Exception as e:
+        print(f"Error creating users table: {e}")
+        
+CreateDatabase()
+    
+
 # Register user
 def registerUser(name, ipAddress, udpSocket, tcpSocket, addr):
     try:
+        print(f"Attempting to register user: {name}")
+
         # Check if the name already exists
         cursor.execute("SELECT * FROM users WHERE name=?", (name,))
         if cursor.fetchone():
@@ -48,6 +73,8 @@ def registerUser(name, ipAddress, udpSocket, tcpSocket, addr):
 
     # Send the response to the client
     udp_sock.sendto(response.encode(), addr)
+    print(f"Response sent to {addr}: {response}")
+
 
 
 # Deregister user
@@ -67,6 +94,7 @@ def deregisterUser(rqNum, name, addr):
 
     # Send the response to the client
     udp_sock.sendto(response.encode(), addr)
+    print(f"Response sent to {addr}: {response}")
 
 
 # Handle incoming UDP messages
